@@ -1,0 +1,11 @@
+## Customize dependencies
+dependencies:
+  pre:
+    - go version
+    - dep ensure
+  override:
+    - echo ""
+
+test:
+  override:
+    - test -z "$(gofmt -s -l  -d $(find . -type f -name '*.go' -not -path "*/vendor/*") | tee /dev/stderr)"
