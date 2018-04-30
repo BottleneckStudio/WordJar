@@ -1,6 +1,7 @@
 package main
 
 import (
+	"github.com/BottleneckStudio/WordJar/controllers"
 	"github.com/gin-gonic/gin"
 )
 
@@ -19,13 +20,6 @@ func initializeRoutes(origRouter *gin.Engine) {
 
 	router := origRouter.Group("")
 	{
-		router.GET("/", sampleHandler)
+		router.GET("/", controllers.IndexController)
 	}
-}
-
-func sampleHandler(c *gin.Context) {
-	c.JSON(200, gin.H{
-		"status":  "Success",
-		"message": "HELLO",
-	})
 }
