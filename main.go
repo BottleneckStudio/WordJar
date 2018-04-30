@@ -25,6 +25,6 @@ func initializeRoutes(origRouter *gin.Engine) {
 
 	v1 := router.Group("/api/v1")
 	{
-		v1.GET("/words", controllers.IndexController)
+		v1.GET("/words/:word", controllers.WordController)
 	}
 }

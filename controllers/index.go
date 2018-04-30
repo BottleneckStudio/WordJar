@@ -9,3 +9,11 @@ func IndexController(c *gin.Context) {
 	})
 
 }
+
+func WordController(c *gin.Context) {
+	word := c.Param("word")
+	c.JSON(200, gin.H{
+		"word":   word,
+		"status": "ok",
+	})
+}
