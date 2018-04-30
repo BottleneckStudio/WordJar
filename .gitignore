@@ -1,0 +1,4 @@
+# IGNORED FILES
+vendor/*
+tmp/*
+Gopkg.lock
