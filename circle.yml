@@ -1,8 +1,19 @@
+# MACHINE
+machine:
+  timezone:
+    Asia/Singapore
+  pre:
+    #- export DEBIAN_FRONTEND=noninteractive && sudo apt-get remove -y --purge mysql-server mysql-community-server
+    - echo "machine pre"
+  environment:
+    GOROOT: ""
+    PATH: "/usr/local/go/bin:/usr/local/go_workspace/bin:~/.go_workspace/bin:${PATH}"
+    GOPATH: "${HOME}/.go_workspace:/usr/local/go_workspace:${HOME}/.go_project"
+
 ## Customize dependencies
 dependencies:
   pre:
     - go version
-    - dep ensure
   override:
     - echo ""
 
