@@ -22,4 +22,9 @@ func initializeRoutes(origRouter *gin.Engine) {
 	{
 		router.GET("/", controllers.IndexController)
 	}
+
+	v1 := router.Group("/api/v1")
+	{
+		v1.GET("/words/:word", controllers.WordController)
+	}
 }
