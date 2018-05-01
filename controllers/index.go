@@ -3,7 +3,10 @@ package controllers
 import "github.com/gin-gonic/gin"
 
 func IndexController(c *gin.Context) {
-	OutputJSON(c, "ok", "Welcome to Index")
+	data := gin.H{
+		"version": "v1",
+	}
+	OutputDataAsJSON(c, data, "ok", "Welcome to WordJar API")
 }
 
 func WordController(c *gin.Context) {
