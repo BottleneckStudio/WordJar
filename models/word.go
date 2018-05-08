@@ -1,16 +1,21 @@
 package models
 
 import (
-	"fmt"
+	"bytes"
+	"encoding/json"
+	"encoding/xml"
+	"io/ioutil"
 	"log"
+	"net"
+	"net/http"
+	"reflect"
+	"sync"
 	"time"
-
-	"github.com/gocolly/colly"
 )
 
 type Word struct {
 	Text           string          `json:"text"`
-	Translation    string          `json:"translation"`
+	Translation    string          `json:"translation,omitempty"`
 	Audio          string          `json:"audio"`
 	Definitions    []Definition    `json:"definitions"`
 	Pronunciations []Pronunciation `json:"pronunciations"`
@@ -29,44 +34,239 @@ type Pronunciation struct {
 	IPA          string `json:"IPA"`
 }
 
-func CrawlWord(word string) Word {
-	w := Word{}
+type WordsAPIQuery struct {
+	Text          string            `json:"word"`
+	Definitions   []DefinitionQuery `json:"results"`
+	Pronunciation map[string]string `json:"pronunciation"`
+}
 
+type DefinitionQuery struct {
+	Text         string   `json:"definition"`
+	PartOfSpeech string   `json:"partOfSpeech"`
+	Synonyms     []string `json:"synonyms"`
+	Examples     []string `json:"examples"`
+}
+
+type Pron struct {
+	Pronunciation string `json:"pronunciation"`
+}
+
+type EntryListQuery struct {
+	XMLName xml.Name `xml:"entry_list"`
+	Entry   []Entry  `xml:"entry"`
+}
+
+type Entry struct {
+	Sound Sound `xml:"sound"`
+}
+
+type Sound struct {
+	Wav Wav `xml:"wav"`
+}
+
+type Wav struct {
+	Content string `xml:",innerxml"`
+}
+
+func CrawlWord(word string, locale string) Word {
+	w := Word{}
+	var delta int
+	if locale != "" {
+		delta = 3
+	} else {
+		delta = 2
+	}
 	w.Text = word
 	w.Pronunciations = []Pronunciation{}
 
-	c := colly.NewCollector(
-		// Visit only domains: https://m-w.com
-		colly.AllowedDomains("www.merriam-webster.com"),
-		colly.Async(true),
-	)
+	var wg sync.WaitGroup
 
-	c.OnHTML("div.full-def-box.def-header-box.card-box.def-text.headword-box.show-collapsed", func(h *colly.HTMLElement) {
-		pron := Pronunciation{}
-		pron.PartOfSpeech = h.ChildText("a.important-blue-link")
-		pron.IPA = h.ChildText("span.mw")
-		w.Pronunciations = append(w.Pronunciations, pron)
-		fmt.Println("Word:", w)
-	})
-
-	c.OnRequest(func(r *colly.Request) {
-		fmt.Println("Visiting", r.URL)
-	})
-
-	c.OnError(func(_ *colly.Response, err error) {
-		log.Println("Something went wrong:", err)
-	})
-
-	c.OnResponse(func(r *colly.Response) {
-		fmt.Println("Visited", r.Request.URL)
-	})
-
-	c.OnScraped(func(r *colly.Response) {
-		fmt.Println("Finished", r.Request.URL)
-	})
-
-	c.Visit("https://www.merriam-webster.com/dictionary/" + word)
-
-	c.Wait()
+	wg.Add(delta)
+	go GetWord(&w, &wg)
+	go GetAudio(&w, &wg)
+	if locale != "" {
+		go GetTranslation(&w, locale, &wg)
+	}
+	wg.Wait()
 	return w
+}
+
+func GetWord(word *Word, wg *sync.WaitGroup) {
+	defer wg.Done()
+
+	var apiURL = "https://wordsapiv1.p.mashape.com/words/"
+	var netTransport = &http.Transport{
+		Dial: (&net.Dialer{
+			Timeout: 5 * time.Second,
+		}).Dial,
+		TLSHandshakeTimeout: 5 * time.Second,
+	}
+	var client = &http.Client{
+		Timeout:   time.Second * 10,
+		Transport: netTransport,
+	}
+	req, err := http.NewRequest("GET", apiURL+word.Text, nil)
+	if err != nil {
+		return
+	}
+	req.Header.Set("X-Mashape-Key", "te6AX6SnBfmshawA0zj6VToSZO3up1MQySvjsnFmGv0qYDjUV3")
+	req.Header.Set("Accept", "application/json")
+
+	resp, err := client.Do(req)
+	if err != nil {
+		return
+	}
+
+	defer resp.Body.Close()
+	log.Println("response Status:", resp.Status)
+	log.Println("response Headers:", resp.Header)
+	b, err := ioutil.ReadAll(resp.Body)
+	r := bytes.NewBuffer(b)
+
+	var w WordsAPIQuery
+	var p Pron
+	err = json.NewDecoder(r).Decode(&w)
+	if err != nil {
+		r = bytes.NewBuffer(b)
+		err = json.NewDecoder(r).Decode(&p)
+		if err != nil {
+			log.Println("error: " + err.Error())
+			return
+		}
+		word.Pronunciations = append(word.Pronunciations, Pronunciation{PartOfSpeech: "all", IPA: p.Pronunciation})
+	}
+
+	word.Created = time.Now()
+	for _, v := range w.Definitions {
+		for _, b := range v.Examples {
+			word.Examples = append(word.Examples, b)
+		}
+		for _, b := range v.Synonyms {
+			word.Synonyms = append(word.Synonyms, b)
+		}
+		word.Definitions = append(word.Definitions, Definition{PartOfSpeech: v.PartOfSpeech, Definition: v.Text})
+	}
+
+	for k, v := range w.Pronunciation {
+		// log.Printf("key[%s] value[%s]\n", k, v)
+		word.Pronunciations = append(word.Pronunciations, Pronunciation{PartOfSpeech: k, IPA: v})
+	}
+}
+
+func GetAudio(word *Word, wg *sync.WaitGroup) {
+	defer wg.Done()
+
+	var apiURL = "https://www.dictionaryapi.com/api/v1/references/collegiate/xml/"
+	var apiKey = "?key=720750f6-2da7-4612-bb3e-2914b923052e"
+	var baseAudioURL = "http://media.merriam-webster.com/soundc11/"
+	var netTransport = &http.Transport{
+		Dial: (&net.Dialer{
+			Timeout: 5 * time.Second,
+		}).Dial,
+		TLSHandshakeTimeout: 5 * time.Second,
+	}
+	var client = &http.Client{
+		Timeout:   time.Second * 10,
+		Transport: netTransport,
+	}
+	req, err := http.NewRequest("GET", apiURL+word.Text+apiKey, nil)
+	if err != nil {
+		return
+	}
+	resp, err := client.Do(req)
+	if err != nil {
+		return
+	}
+
+	defer resp.Body.Close()
+	log.Println("response Status:", resp.Status)
+	log.Println("response Headers:", resp.Header)
+	log.Println("request URL: ", resp.Request.URL)
+
+	var eq EntryListQuery
+	err = xml.NewDecoder(resp.Body).Decode(&eq)
+	if err != nil {
+		return
+	}
+	if len(eq.Entry) == 0 {
+		return
+	}
+	log.Println(eq.Entry[0].Sound.Wav.Content)
+	var fileName = eq.Entry[0].Sound.Wav.Content
+	var firstLetter = string(eq.Entry[0].Sound.Wav.Content[0])
+	word.Audio = baseAudioURL + firstLetter + "/" + fileName
+}
+
+func GetTranslation(word *Word, locale string, wg *sync.WaitGroup) {
+	defer wg.Done()
+	var apiURL = "https://translate.googleapis.com/translate_a/single?client=gtx&sl=en&tl=" + locale + "&dt=t&q="
+	var netTransport = &http.Transport{
+		Dial: (&net.Dialer{
+			Timeout: 5 * time.Second,
+		}).Dial,
+		TLSHandshakeTimeout: 5 * time.Second,
+	}
+	var client = &http.Client{
+		Timeout:   time.Second * 10,
+		Transport: netTransport,
+	}
+	req, err := http.NewRequest("GET", apiURL+word.Text, nil)
+	if err != nil {
+		return
+	}
+	resp, err := client.Do(req)
+	if err != nil {
+		return
+	}
+
+	defer resp.Body.Close()
+	log.Println("response Status:", resp.Status)
+	log.Println("response Headers:", resp.Header)
+	log.Println("request URL: ", resp.Request.URL)
+	// log.Println("response Body: ", resp.Body)
+
+	// var struc [][][]interface{}
+	// err = json.NewDecoder(resp.Body).Decode(&struc)
+	// if err != nil {
+	// 	return
+	// }
+	var a interface{}
+	err = json.NewDecoder(resp.Body).Decode(&a)
+	if err != nil {
+		return
+	}
+
+	log.Println(a)
+
+	b := InterfaceSlice(a)
+	log.Println(b[0])
+	c := InterfaceSlice(b[0])
+	log.Println(c[0])
+	word.Translation = InterfaceSlice(c[0])[0].(string)
+	// for i := range itemdata {
+	// 	fmt.Println(itemdata[i]) // This prints '0', two times
+	// 	for _ = range itemdata[i] {
+	// 		fmt.Println(itemdata[i][0])
+	// 		for _ = range itemdata[i][0] {
+	// 			fmt.Println(itemdata[i][0][0])
+	// 		}
+	// 	}
+	// }
+	// var translation = itemdata[0]
+	// word.Translation = translation.(string)
+}
+
+func InterfaceSlice(slice interface{}) []interface{} {
+	s := reflect.ValueOf(slice)
+	if s.Kind() != reflect.Slice {
+		panic("InterfaceSlice() given a non-slice type")
+	}
+
+	ret := make([]interface{}, s.Len())
+
+	for i := 0; i < s.Len(); i++ {
+		ret[i] = s.Index(i).Interface()
+	}
+
+	return ret
 }
