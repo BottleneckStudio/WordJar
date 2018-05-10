@@ -34,7 +34,7 @@ func main() {
 
 ## Benchmarks
 
-Gin uses a custom version of [HttpRouter](https://github.com/julienschmidt/httprouter)
+Gin uses a custom version of [HttpRouter](https://github.com/julienschmidt/httprouter)  
 
 [See all benchmarks](/BENCHMARKS.md)
 
@@ -69,10 +69,10 @@ BenchmarkTraffic_GithubAll 		| 200 		| 8708979 	| 2664762 	| 22390
 BenchmarkVulcan_GithubAll 		| 5000 		| 353392 	| 19894 	| 609
 BenchmarkZeus_GithubAll 		| 2000 		| 944234 	| 300688 	| 2648
 
-(1): Total Repetitions
-(2): Single Repetition Duration (ns/op)
-(3): Heap Memory (B/op)
-(4): Average Allocations per Repetition (allocs/op)
+(1): Total Repetitions  
+(2): Single Repetition Duration (ns/op)  
+(3): Heap Memory (B/op)  
+(4): Average Allocations per Repetition (allocs/op)  
 
 ## Gin v1. stable
 
@@ -626,7 +626,7 @@ You may use custom delims
 	r := gin.Default()
 	r.Delims("{[{", "}]}")
 	r.LoadHTMLGlob("/path/to/templates"))
-```
+```  
 
 #### Add custom template funcs
 
@@ -634,26 +634,26 @@ main.go
 
 ```go
 	...
-
+	
 	func formatAsDate(t time.Time) string {
 		year, month, day := t.Date()
 		return fmt.Sprintf("%d/%02d/%02d", year, month, day)
 	}
-
+	
 	...
-
+	
 	router.SetFuncMap(template.FuncMap{
 		"formatAsDate": formatAsDate,
 	})
-
+	
 	...
-
+	
 	router.GET("/raw", func(c *Context) {
 		c.HTML(http.StatusOK, "raw.tmpl", map[string]interface{}{
 			"now": time.Date(2017, 07, 01, 0, 0, 0, 0, time.UTC),
 		})
 	})
-
+	
 	...
 ```
 
@@ -956,7 +956,7 @@ func main() {
 }
 ```
 
-## Contributing
+## Contributing 
 
 - With issues:
   - Use the search tool before opening a new issue.
