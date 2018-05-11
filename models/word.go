@@ -11,6 +11,8 @@ import (
 	"reflect"
 	"sync"
 	"time"
+
+	"github.com/BottleneckStudio/WordJar/cache"
 )
 
 type Word struct {
@@ -71,13 +73,23 @@ type Wav struct {
 func CrawlWord(word string, locale string) Word {
 	w := Word{}
 	var delta int
+	var cacheKey string
 	if locale != "" {
 		delta = 3
+		cacheKey = word + "." + locale
 	} else {
 		delta = 2
+		cacheKey = word
 	}
 	w.Text = word
 	w.Pronunciations = []Pronunciation{}
+
+	cacheData, cacheErr := cache.Get(cacheKey)
+
+	if cacheErr == nil && cacheData != "" {
+		json.Unmarshal([]byte(cacheData), &w)
+		return w
+	}
 
 	var wg sync.WaitGroup
 
@@ -88,6 +100,20 @@ func CrawlWord(word string, locale string) Word {
 		go GetTranslation(&w, locale, &wg)
 	}
 	wg.Wait()
+
+	data, err := json.Marshal(w)
+
+	if err != nil {
+		log.Println("Error marshalling due to: %v", err)
+	} else {
+		isCached, err := cache.Set(cacheKey, string(data), 3600)
+
+		if !isCached {
+			log.Println("Error setting cache due to: %v", err)
+		}
+		log.Printf("Successfully saved to cache using key: %s", cacheKey)
+	}
+
 	return w
 }
 
