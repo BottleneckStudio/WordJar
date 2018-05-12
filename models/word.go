@@ -111,9 +111,8 @@ func CrawlWord(word string, locale string) Word {
 		if !isCached {
 			log.Println("Error setting cache due to: %v", err)
 		}
-		log.Printf("Successfully saved to cache using key: %s", cacheKey)
 	}
-
+	log.Printf("Successfully saved to cache using key: %s", cacheKey)
 	return w
 }
 
