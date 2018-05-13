@@ -52,7 +52,7 @@ func Get(suffix string) (string, error) {
 }
 
 // Set sets value to memcache.
-func Set(suffix string, val string, ttl int64) (bool, error) {
+func Set(suffix string, val string) (bool, error) {
 	var key string
 	var e error
 	if compress {
@@ -60,14 +60,14 @@ func Set(suffix string, val string, ttl int64) (bool, error) {
 		e = mc.Set(&memcache.Item{
 			Key:        key,
 			Value:      gzcompress(val),
-			Expiration: int32(ttl),
+			Expiration: 0,
 		})
 	} else {
 		key = prefix + suffix
 		e = mc.Set(&memcache.Item{
 			Key:        key,
 			Value:      []byte(val),
-			Expiration: int32(ttl),
+			Expiration: 0,
 		})
 	}
 

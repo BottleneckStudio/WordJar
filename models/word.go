@@ -106,7 +106,7 @@ func CrawlWord(word string, locale string) Word {
 	if err != nil {
 		log.Println("Error marshalling due to: %v", err)
 	} else {
-		isCached, err := cache.Set(cacheKey, string(data), 3600)
+		isCached, err := cache.Set(cacheKey, string(data))
 
 		if !isCached {
 			log.Println("Error setting cache due to: %v", err)
