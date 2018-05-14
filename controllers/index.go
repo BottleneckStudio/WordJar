@@ -16,8 +16,5 @@ func WordController(c *gin.Context) {
 	word := c.Param("word")
 	locale := c.Query("tl")
 	result := models.CrawlWord(word, locale)
-	data := gin.H{
-		"result": result,
-	}
-	OutputDataAsJSON(c, data, "ok", "1 result")
+	OutputDataAsJSON(c, result, "ok", "1 result")
 }
