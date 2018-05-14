@@ -7,7 +7,7 @@ import (
 )
 
 // OutputDataAsJSON outputs data as JSON format
-func OutputDataAsJSON(c *gin.Context, data gin.H, status, msg string) {
+func OutputDataAsJSON(c *gin.Context, data interface{}, status, msg string) {
 	c.JSON(200, gin.H{
 		"status":  status,
 		"message": msg,
