@@ -1,8 +1,6 @@
 package controllers
 
 import (
-	"errors"
-
 	"github.com/gin-gonic/gin"
 )
 
@@ -27,6 +25,6 @@ func OutputJSON(c *gin.Context, status, msg string) {
 func OutputError(c *gin.Context) {
 	c.JSON(500, gin.H{
 		"status":  "error",
-		"message": errors.New("something went wrong"),
+		"message": "something went wrong",
 	})
 }
