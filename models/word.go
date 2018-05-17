@@ -42,6 +42,11 @@ type WordsAPIQuery struct {
 	Pronunciation map[string]string `json:"pronunciation"`
 }
 
+type WordsAPIError struct {
+	Message string `json:"message"`
+	Success bool   `json:"success"`
+}
+
 type DefinitionQuery struct {
 	Text         string   `json:"definition"`
 	PartOfSpeech string   `json:"partOfSpeech"`
@@ -150,6 +155,13 @@ func GetWord(word *Word, wg *sync.WaitGroup) {
 
 	var w WordsAPIQuery
 	var p Pron
+
+	var error WordsAPIError
+	err = json.Unmarshal(b, &error)
+	if error.Message == "word not found" {
+		return
+	}
+
 	err = json.NewDecoder(r).Decode(&w)
 	if err != nil {
 		r = bytes.NewBuffer(b)
