@@ -1,12 +1,14 @@
 package main
 
 import (
+	"os"
+
 	"github.com/BottleneckStudio/WordJar/controllers"
 	"github.com/BottleneckStudio/WordJar/middlewares/gzip"
 	"github.com/gin-gonic/gin"
 )
 
-const port = ":3000"
+var port = ":" + os.Getenv("PORT")
 
 func main() {
 
