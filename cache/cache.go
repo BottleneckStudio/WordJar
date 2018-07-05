@@ -21,7 +21,7 @@ var memcachedHostStr string
 
 func init() {
 	mhost := getenvWithDefault("MEMCACHED_HOST", "localhost")
-	mport := getenvWithDefault("MEMCACHED_POST", "11211")
+	mport := getenvWithDefault("MEMCACHED_PORT", "11211")
 	memcachedHostStr = mhost + ":" + mport
 	mc = memcache.New(memcachedHostStr)
 
