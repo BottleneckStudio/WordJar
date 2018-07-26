@@ -12,6 +12,10 @@ import (
 	"sync"
 	"time"
 
+	"github.com/gin-gonic/gin"
+	"google.golang.org/appengine"
+	"google.golang.org/appengine/urlfetch"
+
 	"github.com/BottleneckStudio/WordJar/cache"
 )
 
@@ -75,18 +79,25 @@ type Wav struct {
 	Content string `xml:",innerxml"`
 }
 
-func CrawlWord(word string, locale string) Word {
+type CrawlWordInput struct {
+	Word   string
+	Locale string
+	Wg     sync.WaitGroup
+	Ctx    *gin.Context
+}
+
+func CrawlWord(input *CrawlWordInput) Word {
 	w := Word{}
 	var delta int
 	var cacheKey string
-	if locale != "" {
+	if input.Locale != "" {
 		delta = 3
-		cacheKey = word + "." + locale
+		cacheKey = input.Word + "." + input.Locale
 	} else {
 		delta = 2
-		cacheKey = word
+		cacheKey = input.Word
 	}
-	w.Text = word
+	w.Text = input.Word
 	w.Pronunciations = []Pronunciation{}
 
 	cacheData, cacheErr := cache.Get(cacheKey)
@@ -96,15 +107,16 @@ func CrawlWord(word string, locale string) Word {
 		return w
 	}
 
-	var wg sync.WaitGroup
+	// var wg sync.WaitGroup
 
-	wg.Add(delta)
-	go GetWord(&w, &wg)
-	go GetAudio(&w, &wg)
-	if locale != "" {
-		go GetTranslation(&w, locale, &wg)
+	// input.Wg = wg
+	input.Wg.Add(delta)
+	go GetWord(&w, input)
+	go GetAudio(&w, input)
+	if input.Locale != "" {
+		go GetTranslation(&w, input)
 	}
-	wg.Wait()
+	input.Wg.Wait()
 
 	data, err := json.Marshal(w)
 
@@ -121,8 +133,11 @@ func CrawlWord(word string, locale string) Word {
 	return w
 }
 
-func GetWord(word *Word, wg *sync.WaitGroup) {
-	defer wg.Done()
+func GetWord(word *Word, input *CrawlWordInput) {
+	defer input.Wg.Done()
+
+	ctx := appengine.NewContext(input.Ctx.Request)
+	client := urlfetch.Client(ctx)
 
 	var apiURL = "https://wordsapiv1.p.mashape.com/words/"
 	var netTransport = &http.Transport{
@@ -131,10 +146,12 @@ func GetWord(word *Word, wg *sync.WaitGroup) {
 		}).Dial,
 		TLSHandshakeTimeout: 5 * time.Second,
 	}
-	var client = &http.Client{
+
+	client = &http.Client{
 		Timeout:   time.Second * 10,
 		Transport: netTransport,
 	}
+
 	req, err := http.NewRequest("GET", apiURL+word.Text, nil)
 	if err != nil {
 		return
@@ -190,19 +207,23 @@ func GetWord(word *Word, wg *sync.WaitGroup) {
 	}
 }
 
-func GetAudio(word *Word, wg *sync.WaitGroup) {
-	defer wg.Done()
+func GetAudio(word *Word, input *CrawlWordInput) {
+	defer input.Wg.Done()
+	ctx := appengine.NewContext(input.Ctx.Request)
+	client := urlfetch.Client(ctx)
 
 	var apiURL = "https://www.dictionaryapi.com/api/v1/references/collegiate/xml/"
 	var apiKey = "?key=720750f6-2da7-4612-bb3e-2914b923052e"
 	var baseAudioURL = "http://media.merriam-webster.com/soundc11/"
+
 	var netTransport = &http.Transport{
 		Dial: (&net.Dialer{
 			Timeout: 5 * time.Second,
 		}).Dial,
 		TLSHandshakeTimeout: 5 * time.Second,
 	}
-	var client = &http.Client{
+
+	client = &http.Client{
 		Timeout:   time.Second * 10,
 		Transport: netTransport,
 	}
@@ -234,23 +255,29 @@ func GetAudio(word *Word, wg *sync.WaitGroup) {
 	word.Audio = baseAudioURL + firstLetter + "/" + fileName
 }
 
-func GetTranslation(word *Word, locale string, wg *sync.WaitGroup) {
-	defer wg.Done()
-	var apiURL = "https://translate.googleapis.com/translate_a/single?client=gtx&sl=en&tl=" + locale + "&dt=t&q="
+func GetTranslation(word *Word, input *CrawlWordInput) {
+	defer input.Wg.Done()
+	ctx := appengine.NewContext(input.Ctx.Request)
+	client := urlfetch.Client(ctx)
+
+	var apiURL = "https://translate.googleapis.com/translate_a/single?client=gtx&sl=en&tl=" + input.Locale + "&dt=t&q="
 	var netTransport = &http.Transport{
 		Dial: (&net.Dialer{
 			Timeout: 5 * time.Second,
 		}).Dial,
 		TLSHandshakeTimeout: 5 * time.Second,
 	}
-	var client = &http.Client{
+
+	client = &http.Client{
 		Timeout:   time.Second * 10,
 		Transport: netTransport,
 	}
+
 	req, err := http.NewRequest("GET", apiURL+word.Text, nil)
 	if err != nil {
 		return
 	}
+
 	resp, err := client.Do(req)
 	if err != nil {
 		return
