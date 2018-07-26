@@ -54,6 +54,23 @@
   revision = "f67ecc163a74fbeea4cb1db0a101dcd07201464a"
 
 [[projects]]
+  name = "google.golang.org/appengine"
+  packages = [
+    ".",
+    "internal",
+    "internal/app_identity",
+    "internal/base",
+    "internal/datastore",
+    "internal/log",
+    "internal/modules",
+    "internal/remote_api",
+    "internal/urlfetch",
+    "urlfetch"
+  ]
+  revision = "b1f26356af11148e710935ed1ac8a7f5702c7612"
+  version = "v1.1.0"
+
+[[projects]]
   name = "gopkg.in/go-playground/validator.v8"
   packages = ["."]
   revision = "5f1438d3fca68893a817e4a66806cea46a9e4ebf"
@@ -68,6 +85,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "244130f55eb9f3ef152e224a3c306a905d5e06f5cbd13d9f8638b38fbf445a3a"
+  inputs-digest = "6312518a4ef92d1b51e649606bddba79055cbad81aa095d2b9837874e2546d8a"
   solver-name = "gps-cdcl"
   solver-version = 1
