@@ -15,7 +15,7 @@ func IndexController(c *gin.Context) {
 func WordController(c *gin.Context) {
 	word := c.Param("word")
 	locale := c.Query("tl")
-	result := models.CrawlWord(word, locale)
+	result := models.CrawlWord(&models.CrawlWordInput{Word: word, Locale: locale, Ctx: c})
 
 	if result.Created.IsZero() == true {
 		OutputError(c)
