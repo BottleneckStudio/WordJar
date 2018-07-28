@@ -121,12 +121,12 @@ func CrawlWord(input *CrawlWordInput) Word {
 	data, err := json.Marshal(w)
 
 	if err != nil {
-		log.Println("Error marshalling due to: %v", err)
+		log.Printf("Error marshalling due to: %v\n", err)
 	} else {
 		isCached, err := cache.Set(cacheKey, string(data))
 
 		if !isCached {
-			log.Println("Error setting cache due to: %v", err)
+			log.Printf("Error setting cache due to: %v\n", err)
 		}
 	}
 	log.Printf("Successfully saved to cache using key: %s", cacheKey)
