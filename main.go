@@ -8,7 +8,6 @@ import (
 	"github.com/BottleneckStudio/WordJar/middlewares/cors"
 	"github.com/BottleneckStudio/WordJar/middlewares/gzip"
 	"github.com/gin-gonic/gin"
-	"google.golang.org/appengine"
 )
 
 var port = ":" + os.Getenv("PORT")
@@ -26,9 +25,9 @@ func main() {
 	router.Use(gin.Recovery())
 	initializeRoutes(router)
 
-	//router.Run(port)
+	router.Run(port)
 	http.Handle("/", router)
-	appengine.Main()
+	// appengine.Main()
 }
 
 func initializeRoutes(origRouter *gin.Engine) {
