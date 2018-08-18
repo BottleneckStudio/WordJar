@@ -12,11 +12,11 @@ import (
 	"sync"
 	"time"
 
+	"github.com/BottleneckStudio/WordJar/cache"
+	"github.com/BottleneckStudio/WordJar/cache/memcachier"
 	"github.com/gin-gonic/gin"
 	"google.golang.org/appengine"
 	"google.golang.org/appengine/urlfetch"
-
-	"github.com/BottleneckStudio/WordJar/cache"
 )
 
 type Word struct {
@@ -86,6 +86,12 @@ type CrawlWordInput struct {
 	Ctx    *gin.Context
 }
 
+var memcachierService *memcachier.Memcachier
+
+func init() {
+	memcachierService = memcachier.NewMemcachier(memcachier.Config{Server: "localhost:11211", Username: "", Password: ""})
+}
+
 func CrawlWord(input *CrawlWordInput) Word {
 	w := Word{}
 	var delta int
@@ -100,10 +106,10 @@ func CrawlWord(input *CrawlWordInput) Word {
 	w.Text = input.Word
 	w.Pronunciations = []Pronunciation{}
 
-	cacheData, cacheErr := cache.Get(cacheKey)
+	cacheData, cacheErr := cache.Get(cacheKey, memcachierService)
 
 	if cacheErr == nil && cacheData != "" {
-		json.Unmarshal([]byte(cacheData), &w)
+		json.Unmarshal([]byte(cacheData.(string)), &w)
 		return w
 	}
 
@@ -123,7 +129,7 @@ func CrawlWord(input *CrawlWordInput) Word {
 	if err != nil {
 		log.Printf("Error marshalling due to: %v\n", err)
 	} else {
-		isCached, err := cache.Set(cacheKey, string(data))
+		isCached, err := cache.Set(cacheKey, string(data), memcachierService)
 
 		if !isCached {
 			log.Printf("Error setting cache due to: %v\n", err)
