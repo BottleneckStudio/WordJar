@@ -36,6 +36,12 @@
   version = "v0.0.3"
 
 [[projects]]
+  name = "github.com/memcachier/mc"
+  packages = ["."]
+  revision = "d03056eefd08e4d7f92630800bab4e431bc6a5e7"
+  version = "v2.0.1"
+
+[[projects]]
   name = "github.com/ugorji/go"
   packages = ["codec"]
   revision = "b4c50a2b199d93b13dc15e78929cfb23bfdf21ab"
@@ -85,6 +91,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "6312518a4ef92d1b51e649606bddba79055cbad81aa095d2b9837874e2546d8a"
+  inputs-digest = "dcbc88d10f1bb2981d32f1e7babd439425c8f9ba6fdd5f255c49d4d9ae019eb2"
   solver-name = "gps-cdcl"
   solver-version = 1
