@@ -8,6 +8,7 @@ import (
 	"log"
 	"net"
 	"net/http"
+	"os"
 	"reflect"
 	"sync"
 	"time"
@@ -89,7 +90,10 @@ type CrawlWordInput struct {
 var memcachierService *memcachier.Memcachier
 
 func init() {
-	memcachierService = memcachier.NewMemcachier(memcachier.Config{Server: "mc5.dev.ec2.memcachier.com:11211", Username: "287FB9", Password: "C5054054E634497C354D72002A716CC4"})
+	memcachierServer := os.Getenv("MEMCACHIER_SERVERS")
+	memcachierUsername := os.Getenv("MEMCACHIER_USERNAME")
+	memcachierPassword := os.Getenv("MEMCACHIER_PASSWORD")
+	memcachierService = memcachier.NewMemcachier(memcachier.Config{Server: memcachierServer, Username: memcachierUsername, Password: memcachierPassword})
 }
 
 func CrawlWord(input *CrawlWordInput) Word {
