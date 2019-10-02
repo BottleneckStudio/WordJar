@@ -25,6 +25,6 @@ func OutputJSON(c *gin.Context, status, msg string) {
 func OutputError(c *gin.Context) {
 	c.JSON(500, gin.H{
 		"status":  "error",
-		"message": "something went wrong",
+		"message": "something went wrong..",
 	})
 }
